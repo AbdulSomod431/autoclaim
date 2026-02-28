@@ -1,0 +1,7 @@
+{
+  "name": "AutoClaim-NG Engine",
+  "description": "AI-powered vehicle insurance claim adjuster for the Nigerian market. Analyzes damage, estimates local repair costs, and verifies insurance policies.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
