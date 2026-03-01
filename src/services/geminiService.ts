@@ -1,10 +1,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { DamageAnalysis } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const apiKey = process.env.GEMINI_API_KEY;
+
+if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
+  console.warn("GEMINI_API_KEY is missing or set to a placeholder. AI features will not work.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
 export async function analyzeAccidentImage(base64Image: string): Promise<DamageAnalysis> {
-  const model = "gemini-3-flash-preview";
+  if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
+    throw new Error("Gemini API key is missing. Please set GEMINI_API_KEY in your Vercel Environment Variables.");
+  }
+
+  // Use gemini-flash-latest for multimodal vision tasks
+  const model = "gemini-flash-latest";
+  
+  console.log("Analyzing image with model:", model);
   
   const systemInstruction = `
     You are an expert Nigerian Motor Insurance Adjuster AI.

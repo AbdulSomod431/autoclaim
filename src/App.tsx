@@ -129,6 +129,7 @@ export default function App() {
         setImage(reader.result as string);
         setStep(1);
         setDisbursed(false);
+        setError(null);
       };
       reader.readAsDataURL(file);
     }
@@ -141,8 +142,7 @@ export default function App() {
     setError(null);
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${apiUrl}/api/disburse-payout`, {
+      const response = await fetch('/api/disburse-payout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -219,9 +219,9 @@ export default function App() {
       } catch (sbErr) {
         console.warn('Supabase assessment logging failed:', sbErr);
       }
-    } catch (err) {
-      setError('Analysis failed. Please try a clearer image.');
-      console.error(err);
+    } catch (err: any) {
+      console.error('Analysis Error:', err);
+      setError(err.message || 'Analysis failed. Please try a clearer image.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -316,9 +316,20 @@ export default function App() {
                 </div>
                 <div className="flex flex-col justify-center">
                   <h2 className="text-2xl font-bold text-white mb-4">Ready for Analysis</h2>
-                  <p className="text-zinc-400 mb-8">
+                  <p className="text-zinc-400 mb-6">
                     Our AI engine will now identify the vehicle, segment the damage, and cross-reference local market pricing.
                   </p>
+                  
+                  {error && (
+                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 text-sm text-red-500">
+                      <XCircle className="w-5 h-5 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-bold mb-1">Analysis Error</p>
+                        <p className="opacity-90">{error}</p>
+                      </div>
+                    </div>
+                  )}
+
                   <button 
                     onClick={startAnalysis}
                     disabled={isAnalyzing}
