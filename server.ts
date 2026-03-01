@@ -42,7 +42,7 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
 
   // API Routes
-  app.get("/api/parts-pricing", async (req, res) => {
+  app.get(["/api/parts-pricing", "/parts-pricing"], async (req, res) => {
     const { make, model, year } = req.query;
     if (!make || !model) {
       return res.status(400).json({ error: "Make and Model are required" });
@@ -67,7 +67,7 @@ async function startServer() {
     res.json(data);
   });
 
-  app.get("/api/verify-policy", async (req, res) => {
+  app.get(["/api/verify-policy", "/verify-policy"], async (req, res) => {
     const { plate } = req.query;
     if (!plate) {
       return res.status(400).json({ error: "Plate number is required" });
@@ -92,7 +92,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/disburse-payout", async (req, res) => {
+  app.post(["/api/disburse-payout", "/disburse-payout"], async (req, res) => {
     const { amount, plate, ownerName } = req.body;
 
     if (!amount || !plate) {

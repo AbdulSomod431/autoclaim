@@ -153,7 +153,16 @@ export default function App() {
       });
       
       if (!response.ok) {
-        throw new Error('Payout failed. Please try again.');
+        const errorText = await response.text();
+        console.error('Payout API Error:', errorText);
+        throw new Error(`Payout failed with status ${response.status}.`);
+      }
+      
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error('Expected JSON but got:', text);
+        throw new Error("Invalid response from payout server (HTML instead of JSON).");
       }
       
       const data = await response.json();
@@ -193,7 +202,21 @@ export default function App() {
       setAnalysis(result);
       
       // Fetch parts pricing based on analysis
-      const partsRes = await fetch(`/api/parts-pricing?make=${result.vehicle_info.make}&model=${result.vehicle_info.model}&year=${result.vehicle_info.year || ''}`);
+      const partsRes = await fetch(`/api/parts-pricing?make=${encodeURIComponent(result.vehicle_info.make)}&model=${encodeURIComponent(result.vehicle_info.model)}&year=${result.vehicle_info.year || ''}`);
+      
+      if (!partsRes.ok) {
+        const errorText = await partsRes.text();
+        console.error('Parts API Error:', errorText);
+        throw new Error(`Parts API failed with status ${partsRes.status}. This usually means the backend is not reachable.`);
+      }
+
+      const contentType = partsRes.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await partsRes.text();
+        console.error('Expected JSON but got:', text);
+        throw new Error("The server returned an invalid response (HTML instead of JSON). Please check your deployment configuration.");
+      }
+
       const partsData = await partsRes.json();
       setParts(partsData);
       
@@ -231,16 +254,26 @@ export default function App() {
     setIsVerifying(true);
     setError(null);
     try {
-      const res = await fetch(`/api/verify-policy?plate=${plate}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPolicy(data);
-        setStep(3);
-      } else {
-        setError('Policy not found in NIID database.');
+      const res = await fetch(`/api/verify-policy?plate=${encodeURIComponent(plate)}`);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Policy API Error:', errorText);
+        throw new Error(`Policy verification failed with status ${res.status}.`);
       }
-    } catch (err) {
-      setError('Verification service unavailable.');
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        console.error('Expected JSON but got:', text);
+        throw new Error("Invalid response from policy server (HTML instead of JSON).");
+      }
+
+      const data = await res.json();
+      setPolicy(data);
+      setStep(3);
+    } catch (err: any) {
+      setError(err.message || 'Policy not found in NIID database.');
     } finally {
       setIsVerifying(false);
     }
