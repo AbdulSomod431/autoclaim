@@ -12,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Gemini AI Setup
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+// We initialize inside the route handler to ensure the latest environment variables are used.
 
 // Supabase Configuration
 const DEFAULT_URL = 'https://rwlpgrdrqahgovqpprzn.supabase.co';
@@ -42,78 +42,6 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
 
   // API Routes
-  app.post("/api/analyze-damage", async (req, res) => {
-    const { image } = req.body;
-    if (!image) {
-      return res.status(400).json({ error: "Image data is required" });
-    }
-
-    try {
-      const model = "gemini-3-flash-preview";
-      const systemInstruction = `
-        You are an expert Nigerian Motor Insurance Adjuster AI.
-        Analyze photos of vehicle accidents in Nigeria.
-        Identify vehicle (Make, Model, Year), damage severity, and specific parts.
-        Return JSON matching the schema.
-      `;
-
-      const response = await ai.models.generateContent({
-        model,
-        contents: [
-          {
-            parts: [
-              { text: "Analyze this vehicle accident image for an insurance claim." },
-              {
-                inlineData: {
-                  mimeType: "image/jpeg",
-                  data: image.split(",")[1] || image,
-                },
-              },
-            ],
-          },
-        ],
-        config: {
-          systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              vehicle_info: {
-                type: Type.OBJECT,
-                properties: {
-                  make: { type: Type.STRING },
-                  model: { type: Type.STRING },
-                  year: { type: Type.STRING },
-                  plate: { type: Type.STRING },
-                },
-                required: ["make", "model"],
-              },
-              damage_summary: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-              },
-              severity: { 
-                type: Type.STRING, 
-                enum: ["Minor", "Moderate", "Structural", "Totaled"] 
-              },
-              confidence_score: { type: Type.NUMBER },
-              is_consistent: { type: Type.BOOLEAN },
-            },
-            required: ["vehicle_info", "damage_summary", "severity", "confidence_score", "is_consistent"],
-          },
-        },
-      });
-
-      const text = response.text;
-      if (!text) throw new Error("Failed to get analysis from Gemini");
-      
-      res.json(JSON.parse(text));
-    } catch (error: any) {
-      console.error("Gemini Error:", error);
-      res.status(500).json({ error: error.message || "AI Analysis failed" });
-    }
-  });
-
   app.get("/api/parts-pricing", async (req, res) => {
     const { make, model, year } = req.query;
     if (!make || !model) {
@@ -195,7 +123,13 @@ async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: false,
+        watch: {
+          ignored: ['**'],
+        },
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
