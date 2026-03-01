@@ -15,7 +15,6 @@ import {
   CreditCard,
   MapPin
 } from 'lucide-react';
-import { analyzeAccidentImage } from './services/geminiService';
 import { DamageAnalysis, PolicyInfo, PartPricing, ClaimReport } from './types';
 import { supabase } from './lib/supabase';
 import { Auth } from './components/Auth';
@@ -189,11 +188,24 @@ export default function App() {
     setIsAnalyzing(true);
     setError(null);
     try {
-      const result = await analyzeAccidentImage(image);
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      
+      // Call backend for AI analysis
+      const aiRes = await fetch(`${apiUrl}/api/analyze-damage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image })
+      });
+
+      if (!aiRes.ok) {
+        const errorData = await aiRes.json();
+        throw new Error(errorData.error || 'AI Analysis failed');
+      }
+
+      const result = await aiRes.json();
       setAnalysis(result);
       
       // Fetch parts pricing based on analysis
-      const apiUrl = import.meta.env.VITE_API_URL || '';
       const partsRes = await fetch(`${apiUrl}/api/parts-pricing?make=${result.vehicle_info.make}&model=${result.vehicle_info.model}&year=${result.vehicle_info.year || ''}`);
       const partsData = await partsRes.json();
       setParts(partsData);
